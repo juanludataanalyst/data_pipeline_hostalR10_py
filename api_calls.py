@@ -1,11 +1,17 @@
 import requests
 import json
 
-# Define API details
-headers = {'x-api-key': 'wb_3f048daa-4842-11ee-8d46-001a4ae7b219'}
+from dotenv import load_dotenv
+import os
 
+# Loads environment variables from the .env file
+load_dotenv('.env')
 
+# Accesses API KEY environment variable
+api_key = os.getenv('API_KEY')
 
+# Define API KEY in dictionary
+headers = {'x-api-key': api_key}
 
 def get_reservations_data(created, arrival):
   
@@ -107,6 +113,5 @@ def get_customer_info(customer_id):
 
   return customer_info
 
-  #respuesta_json['data']['main_info']['customer_id'] = customer_id
 
 

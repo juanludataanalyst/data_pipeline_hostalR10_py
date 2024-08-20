@@ -4,8 +4,8 @@ from save_data_funcionts import save_dataframes_to_csv
 import pandas as pd
 
 # Define filter parameters
-created = {'from': '01/01/2023', 'to': '15/08/2024'}
-arrival = {'from': '15/07/2024', 'to': '15/08/2024'}
+created = {'from': '01/08/2023', 'to': '15/08/2024'}
+arrival = {'from': '14/08/2024', 'to': '15/08/2024'}
 
 
 
@@ -31,7 +31,7 @@ count = 0
 for customer_id in customer_ids:
     customer_data.append(get_customer_info(customer_id))
     count += 1
-    print(f"Iteración {count}")
+    print(f"Customer {count}")
 
 
 customer_data_info_df = pd.DataFrame(customer_data)
@@ -58,37 +58,3 @@ dataframes = {
 }
 
 save_dataframes_to_csv(dataframes, 'data')
-
-
-
-
-
-
-"""
-# Fetch data
-reservations_data = []
-room_reserva = []
-customers = []
-has_more_data = True
-while has_more_data:
-  fetched_data = fetch_reservations(created, arrival, pager)
-  reservations = fetched_data['data']['reservations']
-  print(reservations)
-  if not reservations:
-    has_more_data = False
-    continue
-
-  for reservation in reservations:
-    reserva_data = extract_reservation_data(reservation)
-    reservations_data.append(reserva_data)
-  
-  
- 
-
-  # Update offset for next iteration
-  pager['offset'] += pager['limit']
-
-print("Esto es print reservations data")
-print(reservations_data)
-
-"""

@@ -1,6 +1,7 @@
 *.csv
 *.json
 data/
+.env
 
 
 # Descarta archivos de configuración creados por editores de texto
