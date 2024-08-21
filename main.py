@@ -1,34 +1,57 @@
-from api_calls import  get_reservations_data, get_room_name_type, get_customer_info
-from save_data_funcionts import save_dataframes_to_csv
-
+from api_calls import get_reservations_data, get_room_name_type, get_customer_info
 import pandas as pd
+import datetime
 
-# Define filter parameters
-created = {'from': '01/08/2023', 'to': '15/08/2024'}
-arrival = {'from': '14/08/2024', 'to': '15/08/2024'}
+def get_data_for_period(created_start, created_end, arrival_start, arrival_end):
+  """
+  Realiza una llamada a la API en un rango de fechas especificado para los campos created y arrival,
+  y devuelve los dataframes.
 
-# Calling apis for reservations and room names
-reservations_data = get_reservations_data(created,arrival)
-room_info = get_room_name_type()
+  Args:
+      created_start (datetime.datetime): Fecha de inicio del rango para el campo created.
+      created_end (datetime.datetime): Fecha de fin del rango para el campo created.
+      arrival_start (datetime.datetime): Fecha de inicio del rango para el campo arrival.
+      arrival_end (datetime.datetime): Fecha de fin del rango para el campo arrival.
 
-# Converting raw data to dataframes
-reservations_data_df = pd.DataFrame(reservations_data['reservations'])
-room_reservas_df = pd.DataFrame(reservations_data['room_reservas'])
-customers_df = pd.DataFrame(reservations_data['customers'])
-room_info_df = pd.DataFrame(room_info)
+  Returns:
+      dict: Diccionario con los cuatro dataframes: reservations, room_reservas, customers, customer_data_info.
+  """
 
-# Getting customer_ids and calling api for getting information
-customer_ids = customers_df['id_customer'].tolist()  # Get customer id's list from customer dataframe
-customer_data = [get_customer_info(customer_id) for customer_id in customer_ids] # List comprension, for iteration and get a dictionary list
+  # Set filter parameters for the given period
+  created = {'from': created_start.strftime('%d/%m/%Y'), 'to': created_end.strftime('%d/%m/%Y')}
+  arrival = {'from': arrival_start.strftime('%d/%m/%Y'), 'to': arrival_end.strftime('%d/%m/%Y')}
 
-customer_data_info_df = pd.DataFrame(customer_data)
+  # Calling apis for reservations and room names
+  reservations_data = get_reservations_data(created, arrival)
+  room_info = get_room_name_type()
 
+  # Converting raw data to dataframes
+  reservations_data_df = pd.DataFrame(reservations_data['reservations'])
+  room_reservas_df = pd.DataFrame(reservations_data['room_reservas'])
+  customers_df = pd.DataFrame(reservations_data['customers'])
+  room_info_df = pd.DataFrame(room_info)
 
-dataframes = {
-    'reservations': reservations_data_df,
-    'room_reservas': room_reservas_df,
-    'customers': customers_df,
-    'customer_data_info': customer_data_info_df
-}
+  # Getting customer_ids and calling api for getting information
+  customer_ids = customers_df['id_customer'].tolist()
+  customer_data = [get_customer_info(customer_id) for customer_id in customer_ids]
 
-save_dataframes_to_csv(dataframes, 'data')
+  customer_data_info_df = pd.DataFrame(customer_data)
+
+  # Return dataframes
+  return {
+      'reservations': reservations_data_df,
+      'room_reservas': room_reservas_df,
+      'room_info' : room_info_df,
+      'customers': customers_df,
+      'customer_data_info': customer_data_info_df
+  }
+
+# Example usage with more specific filtering
+created_start = datetime.datetime(2024, 8, 19)
+created_end = datetime.datetime(2024, 8, 20)
+arrival_start = datetime.datetime(2024, 8, 19)
+arrival_end = datetime.datetime(2024, 8, 20)
+
+dataframes = get_data_for_period(created_start, created_end, arrival_start, arrival_end)
+print(dataframes)
+
