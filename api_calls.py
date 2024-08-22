@@ -23,27 +23,43 @@ def get_reservations_data(created, arrival):
   reservations_data = []
   room_reserva = []
   customers = []
+  
+  unique_reservation_ids = [] # Save reservations id to avoid duplicates from API
 
-  pager = {'limit': 20, 'offset': 0}
+  pager = {'limit': 1, 'offset': 0}
   has_more_data = True
-  while has_more_data: 
+  while has_more_data:
+    print("El pager es:", pager)
     fetched_data = fetch_data(created, arrival, pager)
     reservations = fetched_data['data']['reservations']
-    
+    print(created, arrival, pager)
+    #print(reservations)
 
     if not reservations:
       has_more_data = False
       continue
 
-    for reservation in reservations:
+    import pandas as pd
+
+    for  i in range(len(reservations)):
+     reservation = reservations[i]
      reserva_data = {
       'id': reservation['id'],
       'status': reservation['status'],
       'total_price': reservation['price']['total'],
       'channel': reservation['origin']['channel'],
       'created_date': reservation['created'] }
-     reservations_data.append(reserva_data)
-
+     if reservation['id'] not in unique_reservation_ids: # Api send duplicates registers, only increase list if it is new
+      unique_reservation_ids.append(reservation['id'] )
+      reservations_data.append(reserva_data)
+     else:
+      print("Excluding", reservation['id']," Reserva")  
+     print("Unicos element ids ", unique_reservation_ids )  
+     print("Elementos en la lista reservations", len(reservations))
+     print("Elementos en la lista append:", len(reservations_data))
+     print(pd.DataFrame(reservations_data))
+     import time
+     #time.sleep(10)
 
      for room in reservation['rooms']:
       rooms_data = {
