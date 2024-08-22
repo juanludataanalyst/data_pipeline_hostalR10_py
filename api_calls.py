@@ -150,16 +150,13 @@ def get_data_for_period(created_start, created_end, arrival_start, arrival_end):
 
   # Calling apis for reservations and room names
   reservations_data = get_reservations_data(created, arrival)
-  room_info = get_room_name_type()
-
+  
   # Converting raw data to dataframes
   reservations_data_df = pd.DataFrame(reservations_data['reservations'])
   room_reservas_df = pd.DataFrame(reservations_data['room_reservas'])
   customers_df = pd.DataFrame(reservations_data['customers'])
 
-  room_info_df = pd.DataFrame(room_info)
-
-  # Getting customer_ids and calling api for getting information
+   # Getting customer_ids and calling api for getting information
   customer_ids = customers_df['id_customer'].tolist()
   customer_data = [get_customer_info(customer_id) for customer_id in customer_ids]
 
@@ -169,7 +166,6 @@ def get_data_for_period(created_start, created_end, arrival_start, arrival_end):
   return {
       'reservations': reservations_data_df,
       'room_reservas': room_reservas_df,
-      'room_info' : room_info_df,
       'customers': customers_df,
       'customer_data_info': customer_data_info_df
   }
