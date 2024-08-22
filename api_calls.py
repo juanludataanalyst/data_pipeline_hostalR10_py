@@ -24,7 +24,10 @@ def get_reservations_data(created, arrival):
   room_reserva = []
   customers = []
   
-  unique_reservation_ids = [] # Save reservations id to avoid duplicates from API
+  unique_reservation_ids_for_reservations = [] # Save reservations id to avoid duplicates from API
+  unique_reservation_ids_for_rooms = []
+  unique_reservation_ids_for_customers = []
+
 
   pager = {'limit': 1, 'offset': 0}
   has_more_data = True
@@ -49,16 +52,16 @@ def get_reservations_data(created, arrival):
       'total_price': reservation['price']['total'],
       'channel': reservation['origin']['channel'],
       'created_date': reservation['created'] }
-     if reservation['id'] not in unique_reservation_ids: # Api send duplicates registers, only increase list if it is new
-      unique_reservation_ids.append(reservation['id'] )
+     if reservation['id'] not in unique_reservation_ids_for_reservations : # Api send duplicates registers, only increase list if it is new
+      unique_reservation_ids_for_reservations .append(reservation['id'] )
       reservations_data.append(reserva_data)
      else:
       print("Excluding", reservation['id']," Reserva")  
-     print("Unicos element ids ", unique_reservation_ids )  
+     print("Unicos element ids ", unique_reservation_ids_for_reservations )  
      print("Elementos en la lista reservations", len(reservations))
      print("Elementos en la lista append:", len(reservations_data))
      print(pd.DataFrame(reservations_data))
-     import time
+     #import time
      #time.sleep(10)
 
      for room in reservation['rooms']:
@@ -70,7 +73,9 @@ def get_reservations_data(created, arrival):
           'start_date': room['dfrom'],
           'end_date': room['dto']
       }
-      room_reserva.append(rooms_data)
+      if reservation['id'] not in unique_reservation_ids_for_rooms : # Api send duplicates registers, only increase list if it is new
+        unique_reservation_ids_for_rooms .append(reservation['id'] )
+        room_reserva.append(rooms_data)
 
       for customer in room['customers']:
         customers_data = {
@@ -80,7 +85,9 @@ def get_reservations_data(created, arrival):
           'id_zak_reservation_room': room['id_zak_reservation_room'],
           'id_zak_room_type': room['id_zak_room_type']
         }
-        customers.append(customers_data)
+        if reservation['id'] not in unique_reservation_ids_for_customers : # Api send duplicates registers, only increase list if it is new
+          unique_reservation_ids_for_customers.append(reservation['id'] )
+          customers.append(customers_data)
   
  # Update offset for next iteration
     pager['offset'] += pager['limit']
