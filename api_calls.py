@@ -156,18 +156,11 @@ def get_data_for_period(created_start, created_end, arrival_start, arrival_end):
   room_reservas_df = pd.DataFrame(reservations_data['room_reservas'])
   customers_df = pd.DataFrame(reservations_data['customers'])
 
-   # Getting customer_ids and calling api for getting information
-  customer_ids = customers_df['id_customer'].tolist()
-  customer_data = [get_customer_info(customer_id) for customer_id in customer_ids]
-
-  customer_data_info_df = pd.DataFrame(customer_data)
-
-  # Return dataframes
+    # Return dataframes
   return {
       'reservations': reservations_data_df,
       'room_reservas': room_reservas_df,
-      'customers': customers_df,
-      'customer_data_info': customer_data_info_df
+      'customers': customers_df
   }
 
 def save_all_dataframes_to_csv(dataframes_list,output_directory):
@@ -183,9 +176,15 @@ def save_all_dataframes_to_csv(dataframes_list,output_directory):
     for dataframes in dataframes_list:
         for dataframe_name, dataframe in dataframes.items():
             
+          if dataframe_name in ['reservations', 'room_reservas', 'customers']:
             filename = f"{dataframe_name}_{counter}.csv" 
             filepath = os.path.join(output_directory, filename)
             dataframe.to_csv(filepath,index=False)
+          else: 
+            filename = f"{dataframe_name}.csv" 
+            filepath = os.path.join(output_directory, filename)
+            dataframe.to_csv(filepath,index=False)
+
 
         counter += 1   
 
