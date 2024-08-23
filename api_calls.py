@@ -113,7 +113,8 @@ def get_room_name_type():
         'id': room['id'],
         'id_room_type': room['id_room_type'],
         'name': room['name']
-    }
+    } 
+    
     room_info.append(room_data)
 
 
@@ -190,7 +191,7 @@ def save_all_dataframes_to_csv(dataframes_list,output_directory):
           else: 
             filename = f"{dataframe_name}.csv" 
             filepath = os.path.join(output_directory, filename)
-            dataframe.to_csv(filepath,index=False)
+            dataframe.to_csv(filepath,index=False, sep=',')
 
 
         counter += 1   
