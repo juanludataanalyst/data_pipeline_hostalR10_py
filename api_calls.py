@@ -3,6 +3,7 @@ import json
 import pandas as pd
 from dotenv import load_dotenv
 import os
+import datetime
 
 # Loads environment variables from the .env file
 load_dotenv('.env')
@@ -118,7 +119,7 @@ def get_room_name_type():
     room_info.append(room_data)
 
 
-  return room_info
+  return pd.DataFrame(room_info)
 
 def get_customer_info(customer_id):
   data = {'id': customer_id}
@@ -171,9 +172,7 @@ def get_data_for_period(created_start, created_end, arrival_start, arrival_end):
       'customers': customers_df
   }
 
-import datetime
-
-def get_reservations_df(created_start, created_end, arrival_start, arrival_end):
+def get_reservations_df_list(created_start, created_end, arrival_start, arrival_end):
     dataframes_reservation_list = []  # List for reservations (Dictionaries)
     start_date = created_start
 
@@ -195,7 +194,18 @@ def get_reservations_df(created_start, created_end, arrival_start, arrival_end):
     
     return dataframes_reservation_list
 
-
+def get_customer_data_df(dataframes_reservation_list):
+    all_customer_ids = []
+    for df in dataframes_reservation_list:
+        if not df['customers'].empty:
+            customer_ids = df['customers']['id_customer'].tolist()
+            all_customer_ids.extend(customer_ids)
+    
+    all_customer_ids = list(set(all_customer_ids))
+    
+    customer_data = [get_customer_info(customer_id) for customer_id in all_customer_ids]
+    
+    return pd.DataFrame(customer_data)
 
 def save_all_dataframes_to_csv(dataframes_list,output_directory):
     """
