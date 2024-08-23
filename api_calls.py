@@ -171,6 +171,32 @@ def get_data_for_period(created_start, created_end, arrival_start, arrival_end):
       'customers': customers_df
   }
 
+import datetime
+
+def get_reservations_df(created_start, created_end, arrival_start, arrival_end):
+    dataframes_reservation_list = []  # List for reservations (Dictionaries)
+    start_date = created_start
+
+    while start_date <= created_end:
+        # Calcular la fecha de fin del período 
+        loop_date = start_date 
+       
+        # Asegurarse de que biweekly_end_date no exceda la fecha de fin general
+        loop_date = min(loop_date, created_end)
+        
+        
+        dataframes = get_data_for_period(start_date, loop_date, arrival_start, arrival_end)
+        
+        if dataframes:  #Add to list if api return something
+            dataframes_reservation_list.append(dataframes)
+        
+        # Actualizar start_date para el siguiente período quincenal
+        start_date = loop_date + datetime.timedelta(days=1)
+    
+    return dataframes_reservation_list
+
+
+
 def save_all_dataframes_to_csv(dataframes_list,output_directory):
     """
     Guarda todos los DataFrames en archivos CSV separados con nombres descriptivos.

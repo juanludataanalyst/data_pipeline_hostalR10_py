@@ -1,37 +1,16 @@
-from api_calls import get_data_for_period, save_all_dataframes_to_csv,get_room_name_type,get_customer_info
+from api_calls import get_data_for_period, save_all_dataframes_to_csv,get_room_name_type,get_customer_info,get_reservations_df
 import datetime
 import pandas as pd
 import os
 
-
-
-# Example usage with more specific filtering
 #created_start = datetime.date(2019, 2, 25)
-created_start = datetime.date(2024, 8, 1)
-created_end = datetime.date(2024, 8, 25)
-arrival_start = datetime.date(2024, 8, 11)
+created_start = datetime.date(2024, 1, 1)
+created_end = datetime.date(2024, 1, 2)
+arrival_start = datetime.date(2024, 2, 1)
 arrival_end = datetime.date(2025, 12, 31)
 
-dataframes_reservation_list = [] # List for reservations (Dictionaries)
-start_date = created_start
-
-while start_date <= created_end:
-    # Calcular la fecha de fin del período 
-    loop_date = start_date 
-   
-    # Asegurarse de que biweekly_end_date no exceda la fecha de fin general
-    loop_date = min(loop_date, created_end)
-    
-    
-    dataframes = get_data_for_period( start_date,  loop_date,arrival_start,arrival_end)
-    
-    if  dataframes:  #Add to list if api return something
-        dataframes_reservation_list.append(dataframes)
-    
-    # Actualizar start_date para el siguiente período quincenal
-    start_date = loop_date + datetime.timedelta(days=1)
-    
-
+dataframes_reservation_list = get_reservations_df(created_start, created_end, arrival_start, arrival_end)
+  
 room_name_df = pd.DataFrame(get_room_name_type())
 
  # Getting customer_ids and calling api for getting information
@@ -65,8 +44,8 @@ customers_reservation_df = pd.concat(customers_reservation_list, ignore_index=Tr
 
 
 
-os.makedirs("my_data", exist_ok=True) 
-output_directory = "my_data"
+os.makedirs("my_data_2024", exist_ok=True) 
+output_directory = "my_data_2024"
 #output_directory = "my_data"  # Cambia esto por la ruta de tu directorio de salida
 
 
