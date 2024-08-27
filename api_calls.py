@@ -207,28 +207,42 @@ def get_customer_data_df(dataframes_reservation_list):
     
     return pd.DataFrame(customer_data)
 
-def save_all_dataframes_to_csv(dataframes_list,output_directory):
-    """
-    Guarda todos los DataFrames en archivos CSV separados con nombres descriptivos.
+def get_and_save_all_dataframes():
 
-    Args:
-        dataframes_list (list): Lista de diccionarios, cada uno conteniendo los dataframes.
-        output_directory (str): Directorio donde se guardarán los archivos CSV.
-    """
+  #created_start = datetime.date(2019, 2, 25)
+  created_start = datetime.date(2022, 12, 30)
+  created_end = datetime.date(2022, 12, 31)
+  arrival_start = datetime.date(2022, 12, 30)
+  arrival_end = datetime.date(2023, 12, 31)
 
-    counter = 1
-    for dataframes in dataframes_list:
-        for dataframe_name, dataframe in dataframes.items():
-            
-          if dataframe_name in ['reservations', 'room_reservas', 'customers']:
-            filename = f"{dataframe_name}_{counter}.csv" 
-            filepath = os.path.join(output_directory, filename)
-            dataframe.to_csv(filepath,index=False)
-          else: 
-            filename = f"{dataframe_name}.csv" 
-            filepath = os.path.join(output_directory, filename)
-            dataframe.to_csv(filepath,index=False, sep=',')
+  dataframes_reservation_list = get_reservations_df_list(created_start, created_end, arrival_start, arrival_end)
+    
+  room_name_df = get_room_name_type()
+
+  customer_data_df = get_customer_data_df(dataframes_reservation_list)
+
+  # Crear listas vacías para almacenar los DataFrames combinados
+  reservations_list, room_reservation_list, customers_reservation_list = [], [], []
+
+  for diccionario in dataframes_reservation_list:
+      reservations_list.append(diccionario['reservations'])
+      room_reservation_list.append(diccionario['room_reservas'])
+      customers_reservation_list.append(diccionario['customers'])
+
+  reservations_df = pd.concat(reservations_list, ignore_index=True)
+  room_reservation_df = pd.concat(room_reservation_list, ignore_index=True)
+  customers_reservation_df = pd.concat(customers_reservation_list, ignore_index=True) 
+  
+  os.makedirs("my_data_2022_full", exist_ok=True) 
+  output_directory = "my_data_2022_full"
+  
+  reservations_df.to_csv(os.path.join(output_directory,"reservations.csv"),index=False, sep=',')
+  room_reservation_df.to_csv(os.path.join(output_directory,"room_reservations.csv"),index=False, sep=',')
+  customers_reservation_df.to_csv(os.path.join(output_directory,"customers_reservations.csv"),index=False, sep=',')
+  room_name_df.to_csv(os.path.join(output_directory,"room_name.csv"),index=False, sep=',')
+  customer_data_df.to_csv(os.path.join(output_directory,"customers_data.csv"),index=False, sep=',')
+
+  print("Dataframe Finished")
 
 
-        counter += 1   
 
