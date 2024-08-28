@@ -5,6 +5,7 @@ data/
 
 # Descarta los ficheros checkpoint de notebooks
 .ipynb_checkpoints
+.virtual_documents/*
 
 # Descarta archivos de configuración creados por editores de texto
 .vscode/*
