@@ -1,0 +1,35 @@
+---
+title: "eda"
+output: html_document
+date: "2024-08-29"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+Loading libraries
+
+```{r}
+library(tidyverse)
+library(lubridate)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r}
+reservations <- read_csv("data_2019/reservations.csv")
+room_reservations <- read_csv("data_2019/room_reservations.csv")
+room_names <- read_csv("data_2019/room_name.csv")
+customers_data <- read_csv("data_2019/customers_data.csv")
+customers_reservations <- read_csv("data_2019/customers_reservations.csv")
+
+
+
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
