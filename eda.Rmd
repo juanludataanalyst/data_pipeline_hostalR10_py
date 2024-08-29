@@ -19,7 +19,7 @@ library(lubridate)
 
 ## Including Plots
 
-You can also embed plots, for example:
+Loading data
 
 ```{r}
 reservations <- read_csv("data_2019/reservations.csv")
@@ -27,8 +27,40 @@ room_reservations <- read_csv("data_2019/room_reservations.csv")
 room_names <- read_csv("data_2019/room_name.csv")
 customers_data <- read_csv("data_2019/customers_data.csv")
 customers_reservations <- read_csv("data_2019/customers_reservations.csv")
+```
 
+Occupation rate by room
 
+```{r}
+room_reservations_confirmed <- room_reservations %>% 
+  left_join(reservations, by = c("id_reserva"="id")) %>% 
+  filter(status == "Confirmed") %>% 
+  mutate(start_date = lubridate::dmy(start_date),
+         end_date = lubridate::dmy(end_date)) %>% 
+  mutate(diff_days =  as.integer(end_date - start_date)) %>% 
+  left_join(room_names, by = c("id_zak_room"="id"))
+  
+
+occupation_rate_by_room <- room_reservations_confirmed %>% 
+  filter(start_date <= '2019-03-31') %>% 
+  mutate(total_days = as.integer(max(start_date) - min(start_date) )) %>% 
+  group_by(total_days,id_name_type) %>% 
+  summarise(days = sum(diff_days),
+            nrooms = n_distinct(id_zak_room),
+            total_price = sum(total_price)) %>% 
+  mutate(avg_price = total_price/days,
+         occupation_rate = days/(total_days*nrooms))
+
+```
+
+```{r}
+
+ggplot(occupation_rate_by_room, aes(avg_price,occupation_rate, color = as.factor(id_name_type))) +  
+  geom_point()+ 
+  labs(x = "Precio promedio (€)", y = "Proporción ocupada", color = "Tipo de habitación") + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  scale_color_discrete(name = "Tipo de habitación")
 
 ```
 
