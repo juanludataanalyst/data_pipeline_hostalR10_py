@@ -3,6 +3,7 @@
 *.html
 data/
 .env
+.Rhistory
 
 # Descarta los ficheros checkpoint de notebooks
 .ipynb_checkpoints

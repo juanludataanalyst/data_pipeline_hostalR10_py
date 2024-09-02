@@ -39,6 +39,11 @@ room_reservations_confirmed <- room_reservations %>%
          end_date = lubridate::dmy(end_date)) %>% 
   mutate(diff_days =  as.integer(end_date - start_date)) %>% 
   left_join(room_names, by = c("id_zak_room"="id")) %>% 
+  filter(id_name_type != 'TBC') %>% 
+    mutate(id_name_type = ifelse(id_name_type == 'double e shared bathroom',
+                               'double shared bathroom',
+                               id_name_type
+                               )) %>% ## Borrar cuando actualice
   mutate(price_by_day = total_price/diff_days)  %>% 
   group_by(id_name_type) %>%
   mutate(
@@ -60,7 +65,6 @@ room_reservations_confirmed <- room_reservations %>%
 
 
 occupation_rate_by_room <- room_reservations_confirmed %>% 
-  filter(start_date <= '2024-07-31') %>% 
   mutate(total_days = as.integer(max(start_date) - min(start_date) )) %>% 
   group_by(total_days,id_name_type) %>% 
   summarise(days = sum(diff_days),
@@ -70,7 +74,8 @@ occupation_rate_by_room <- room_reservations_confirmed %>%
             media = mean(price_by_day)
             ) %>% 
   mutate(avg_price = total_price/days,
-         occupation_rate = days/(total_days*nrooms))
+         occupation_rate = days/(total_days*nrooms)) %>% 
+  mutate(RevPar = occupation_rate*avg_price)
 
 ```
 
@@ -81,16 +86,93 @@ Note that the `echo = FALSE` parameter was added to the code chunk to prevent pr
 max_avg_price <- max(occupation_rate_by_room$media)
 slope <- 1 / max_avg_price  # Si occupation_rate varía de 0 a 1
 
-# Genera el gráfico con la línea ajustada desde el origen y ejes intercambiados
-ggplot(occupation_rate_by_room, aes(occupation_rate, media, color = as.factor(id_name_type))) +
-  geom_abline(slope = 1/slope, intercept = 0, linetype = "dashed", color = "black") +  # Línea ajustada desde (0, 0)
+# Genera el gráfico con la línea ajustada desde el origen
+ggplot(occupation_rate_by_room, aes(media, occupation_rate, color = as.factor(id_name_type))) +  
+  geom_abline(slope = slope, intercept = 0, linetype = "dashed", color = "black") +  # Línea ajustada desde (0, 0)
   geom_point(size = 3) +  # Luego, añade los puntos
-  labs(x = "Proporción ocupada", y = "Precio promedio (COP)", color = "Tipo de habitación") +
-  theme_classic() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+   geom_text(aes(label = paste0("RevPar ", round(RevPar, 0)," COP")), vjust = -1, size = 3.5) + 
+  labs(x = "Precio promedio (COP)", y = "Proporción ocupada", color = "Tipo de habitación") + 
+  theme_classic() + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
   scale_color_discrete(name = "Tipo de habitación") +
-  scale_x_continuous(limits = c(0, 1), labels = scales::percent) +
-  scale_y_continuous(limits = c(0, 150000))
+  scale_y_continuous(limits = c(0, 1), labels = scales::percent)+
+scale_x_continuous(limits = c(0, 150000))
+
+
+geom_text(aes(label = paste0("$", format(round(RevPAR, 2), big.mark = "."))), 
+            vjust = -1, size = 4)
+
+```
+
+Porcentaje de habitaciones ocupadas por dia 
+
+```{r}
+
+
+  
+
+# Expandimos las reservas a nivel diario
+reservas_diarias <- room_reservations_confirmed %>%
+  select(id_name_type,id_zak_room,start_date,end_date,diff_days) %>% 
+  uncount(diff_days , .id = "dia") %>%
+  mutate(fecha = start_date + days(dia - 1)) %>% 
+  filter(fecha <= '2024-07-31')
+
+# Calculamos la capacidad total por tipo de habitación (asumimos que es constante)
+capacidad_total <- reservas_diarias %>%
+  group_by(id_name_type) %>% 
+  summarise(capacidad_total = n_distinct(id_zak_room))
+
+# Contamos el número de reservas por día y tipo de habitación y calculamos el porcentaje de ocupación
+ocupacion_por_dia <- reservas_diarias %>%
+  group_by(fecha, id_name_type) %>%
+  summarize(num_reservas = n()) %>%
+  left_join(capacidad_total, by = "id_name_type") %>%
+  mutate(ocupacion_porcentaje = num_reservas / capacidad_total )
+
+
+
+ ggplot(ocupacion_por_dia %>% 
+          filter(id_name_type != 'TBC')
+          , aes(x = fecha, y = ocupacion_porcentaje,color = id_name_type)) +
+  theme_minimal() + 
+  scale_y_continuous(limits = c(0, 1), labels = scales::percent)+
+     geom_line() +
+   
+     facet_wrap(~ id_name_type, ncol = 3) +  # Ajusta el número de columnas si lo deseas
+   labs(
+         x = "Fecha",
+         y = "Porcentaje de Ocupación",
+         title = "Evolución de la Ocupación por Tipo de Habitación"
+      )
 
 
 ```
+
+Duracion de la estancia por cada tipo de habitacion
+
+```{r}
+duration <- reservas_diarias %>% 
+  group_by(id_zak_room,id_name_type,start_date) %>% 
+  summarise(dias = max(dia))
+
+
+ggplot(duration, aes(x=id_name_type,y=dias, fill = id_name_type))+
+geom_boxplot()+ 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+Ingresos por cada tipo de habitacion
+
+```{r}
+
+revenue_by_room_type <- room_reservations_confirmed %>% 
+  group_by(id_name_type) %>% 
+  summarise(room_revenue = sum( price_by_day*diff_days )) %>% 
+  mutate(total_revenue = sum(room_revenue)) %>% 
+  mutate(prop = room_revenue/total_revenue)
+
+
+```
+

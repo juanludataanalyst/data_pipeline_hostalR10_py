@@ -237,7 +237,7 @@ def get_and_save_all_dataframes():
 
   created_start = datetime.date(2024, 1, 1)
   #created_start = datetime.date(2022, 12, 30)
-  created_end = datetime.date(2024, 8,27)
+  created_end = datetime.date(2024, 8,31)
   arrival_start = datetime.date(2024, 1, 1)
   arrival_end = datetime.date(2024, 12, 31)
 
@@ -262,8 +262,8 @@ def get_and_save_all_dataframes():
   
 
   
-  os.makedirs("data_2024", exist_ok=True) 
-  output_directory = "data_2024"
+  os.makedirs("data_2024_", exist_ok=True) 
+  output_directory = "data_2024_"
   
   reservations_df.to_csv(os.path.join(output_directory,"reservations.csv"),index=False, sep=',')
   room_reservation_df.to_csv(os.path.join(output_directory,"room_reservations.csv"),index=False, sep=',')
