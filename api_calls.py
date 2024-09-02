@@ -129,11 +129,11 @@ def get_room_name_type():
       15509: 'double privated bathroom',
     # 15510: 'double privated bathroom e',
       15510: 'double privated bathroom',
-      23174: 'double e shared bathroom',
-      23175: 'individual private bathroom',
+      23174: 'double shared bathroom',
+      23175: 'individual privated bathroom',
       33902: 'TBC',
       #68222: 'individual private bathroom e'
-    68222: 'individual private bathroom'
+    68222: 'individual privated bathroom'
       
   }
 
@@ -235,11 +235,11 @@ def get_customer_data_df(dataframes_reservation_list):
 
 def get_and_save_all_dataframes():
 
-  created_start = datetime.date(2019, 2, 25)
+  created_start = datetime.date(2024, 1, 1)
   #created_start = datetime.date(2022, 12, 30)
-  created_end = datetime.date(2019, 3,31)
-  arrival_start = datetime.date(2019, 2, 25)
-  arrival_end = datetime.date(2020, 3, 31)
+  created_end = datetime.date(2024, 8,27)
+  arrival_start = datetime.date(2024, 1, 1)
+  arrival_end = datetime.date(2024, 12, 31)
 
   dataframes_reservation_list = get_reservations_df_list(created_start, created_end, arrival_start, arrival_end)
     
@@ -262,8 +262,8 @@ def get_and_save_all_dataframes():
   
 
   
-  os.makedirs("data_2019", exist_ok=True) 
-  output_directory = "data_2019"
+  os.makedirs("data_2024", exist_ok=True) 
+  output_directory = "data_2024"
   
   reservations_df.to_csv(os.path.join(output_directory,"reservations.csv"),index=False, sep=',')
   room_reservation_df.to_csv(os.path.join(output_directory,"room_reservations.csv"),index=False, sep=',')

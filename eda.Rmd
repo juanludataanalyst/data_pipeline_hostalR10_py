@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 Loading libraries
 
-```{r}
+```{r echo = FALSE}
 library(tidyverse)
 library(lubridate)
 ```
@@ -21,47 +21,76 @@ library(lubridate)
 
 Loading data
 
-```{r}
-reservations <- read_csv("data_2019/reservations.csv")
-room_reservations <- read_csv("data_2019/room_reservations.csv")
-room_names <- read_csv("data_2019/room_name.csv")
-customers_data <- read_csv("data_2019/customers_data.csv")
-customers_reservations <- read_csv("data_2019/customers_reservations.csv")
+```{r  echo=FALSE , results='hide'}
+reservations <- read_csv("data_2024/reservations.csv", show_col_types = FALSE)
+room_reservations <- read_csv("data_2024/room_reservations.csv", show_col_types = FALSE)
+room_names <- read_csv("data_2024/room_name.csv", show_col_types = FALSE)
+customers_data <- read_csv("data_2024/customers_data.csv", show_col_types = FALSE)
+customers_reservations <- read_csv("data_2024/customers_reservations.csv", show_col_types = FALSE)
 ```
 
 Occupation rate by room
 
-```{r}
+```{r echo = FALSE}
 room_reservations_confirmed <- room_reservations %>% 
   left_join(reservations, by = c("id_reserva"="id")) %>% 
   filter(status == "Confirmed") %>% 
   mutate(start_date = lubridate::dmy(start_date),
          end_date = lubridate::dmy(end_date)) %>% 
   mutate(diff_days =  as.integer(end_date - start_date)) %>% 
-  left_join(room_names, by = c("id_zak_room"="id"))
+  left_join(room_names, by = c("id_zak_room"="id")) %>% 
+  mutate(price_by_day = total_price/diff_days)  %>% 
+  group_by(id_name_type) %>%
+  mutate(
+    mean_price = mean(price_by_day),
+    sd_price = sd(price_by_day),
+    Q1 = quantile(price_by_day, 0.25),
+    Q3 = quantile(price_by_day, 0.75),
+    median = quantile(price_by_day, 0.5),
+    z_score = (price_by_day - mean_price) / sd_price,
+    rango = 0.25 * quantile(price_by_day, 0.5)
+  )  %>% 
+   mutate( # if value 25% of deviation from median, adjust median (20% maximum disco)
+    price_by_day = ifelse(
+      abs(price_by_day) - median > rango,
+      median,
+      price_by_day
+    ))
   
 
+
 occupation_rate_by_room <- room_reservations_confirmed %>% 
-  filter(start_date <= '2019-03-31') %>% 
+  filter(start_date <= '2024-07-31') %>% 
   mutate(total_days = as.integer(max(start_date) - min(start_date) )) %>% 
   group_by(total_days,id_name_type) %>% 
   summarise(days = sum(diff_days),
             nrooms = n_distinct(id_zak_room),
-            total_price = sum(total_price)) %>% 
+            total_price = sum(total_price),
+            mediana = median(price_by_day),
+            media = mean(price_by_day)
+            ) %>% 
   mutate(avg_price = total_price/days,
          occupation_rate = days/(total_days*nrooms))
 
 ```
 
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
 ```{r}
 
-ggplot(occupation_rate_by_room, aes(avg_price,occupation_rate, color = as.factor(id_name_type))) +  
-  geom_point()+ 
-  labs(x = "Precio promedio (€)", y = "Proporción ocupada", color = "Tipo de habitación") + 
-  theme_classic() + 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
-  scale_color_discrete(name = "Tipo de habitación")
+# Calcula la pendiente ajustada
+max_avg_price <- max(occupation_rate_by_room$media)
+slope <- 1 / max_avg_price  # Si occupation_rate varía de 0 a 1
+
+# Genera el gráfico con la línea ajustada desde el origen y ejes intercambiados
+ggplot(occupation_rate_by_room, aes(occupation_rate, media, color = as.factor(id_name_type))) +
+  geom_abline(slope = 1/slope, intercept = 0, linetype = "dashed", color = "black") +  # Línea ajustada desde (0, 0)
+  geom_point(size = 3) +  # Luego, añade los puntos
+  labs(x = "Proporción ocupada", y = "Precio promedio (COP)", color = "Tipo de habitación") +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_color_discrete(name = "Tipo de habitación") +
+  scale_x_continuous(limits = c(0, 1), labels = scales::percent) +
+  scale_y_continuous(limits = c(0, 150000))
+
 
 ```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
