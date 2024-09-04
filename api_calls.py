@@ -121,9 +121,9 @@ def get_room_name_type():
     
   # Dictionary to map room type
   mapping = {
-      15507: 'shared',
-      15504: 'shared',
-      15505: 'shared',
+      15507: 'shared 4 beds',
+      15504: 'shared 6 beds',
+      15505: 'shared 8 beds',
       23197: 'individual shared bathroom',
       15508: 'double shared bathroom',
       15509: 'double privated bathroom',
@@ -133,7 +133,7 @@ def get_room_name_type():
       23175: 'individual privated bathroom',
       33902: 'TBC',
       #68222: 'individual private bathroom e'
-    68222: 'individual privated bathroom'
+      68222: 'individual privated bathroom'
       
   }
 
@@ -235,10 +235,10 @@ def get_customer_data_df(dataframes_reservation_list):
 
 def get_and_save_all_dataframes():
 
-  created_start = datetime.date(2024, 1, 1)
+  created_start = datetime.date(2021, 1, 1)
   #created_start = datetime.date(2022, 12, 30)
   created_end = datetime.date(2024, 8,31)
-  arrival_start = datetime.date(2024, 1, 1)
+  arrival_start = datetime.date(2021, 1, 1)
   arrival_end = datetime.date(2024, 12, 31)
 
   dataframes_reservation_list = get_reservations_df_list(created_start, created_end, arrival_start, arrival_end)
@@ -262,8 +262,8 @@ def get_and_save_all_dataframes():
   
 
   
-  os.makedirs("data_2024_", exist_ok=True) 
-  output_directory = "data_2024_"
+  os.makedirs("data_historic", exist_ok=True) 
+  output_directory = "data_historic"
   
   reservations_df.to_csv(os.path.join(output_directory,"reservations.csv"),index=False, sep=',')
   room_reservation_df.to_csv(os.path.join(output_directory,"room_reservations.csv"),index=False, sep=',')
