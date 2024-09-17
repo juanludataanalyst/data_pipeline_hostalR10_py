@@ -4,7 +4,7 @@
 data/
 .env
 .Rhistory
-combine_daya.py
+combine_data.py
 
 # Descarta los ficheros checkpoint de notebooks
 .ipynb_checkpoints

@@ -2,7 +2,7 @@ import pandas as pd
 import os
 
 # Directorios de origen
-directorios = ["my_data_2022", "my_data_2023_full", "my_data_2024_full"]
+directorios = ["my_data_2021","my_data_2022", "my_data_2023_full", "my_data_2024_full"]
 
 # Nombres de los archivos a combinar
 archivos = ["customers_data", "customers_reservations", "reservations", "room_reservations"]

@@ -14,6 +14,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(lubridate)
 library(knitr)
+library(forecast) 
+library(zoo)## Time series
 library(ggrepel) ## Avoid superposition text in charts
 ```
 
@@ -35,6 +37,7 @@ room_reservations_confirmed <- room_reservations %>%
   filter(status == "Confirmed") %>% 
   mutate(start_date = lubridate::dmy(start_date),
          end_date = lubridate::dmy(end_date)) %>% 
+   filter(start_date >= "2022-01-01") %>% 
   mutate(diff_days =  as.integer(end_date - start_date)) %>% 
   left_join(room_names, by = c("id_zak_room"="id")) %>% 
   filter(id_name_type != 'TBC')  %>% ## Borrar cuando actualice
@@ -86,16 +89,114 @@ occupation_rate <- reservas_diarias %>%
   left_join(capacidad_total, by = "id_name_type") %>%
   group_by(fecha) %>%
     summarize(num_reservas = n()) %>% 
-  mutate(ocupacion_porcentaje = num_reservas / capacidad_total_general )
+  mutate(ocupacion_porcentaje = num_reservas / capacidad_total_general ) %>%
+  mutate(
+    ma_365 = rollmean(ocupacion_porcentaje, k = 365, fill = NA, align = "right"),
+    diferencia_diaria = ocupacion_porcentaje - ma_365,
+    perdida_estimada_diaria = mean(diferencia_diaria, na.rm = TRUE)
+  )
+
 
 
 ggplot(occupation_rate, aes(fecha,ocupacion_porcentaje)) +
   geom_line() +
-  geom_hline(yintercept = mean(occupation_rate$ocupacion_porcentaje) ,color = "blue")+
+  geom_hline(yintercept = mean(occupation_rate$ocupacion_porcentaje) ,color = "green")+
+  geom_smooth(method = "lm", color = "blue", se = FALSE) +
   geom_point() +
   theme_minimal() + 
   scale_y_continuous(limits = c(0, 1), labels = scales::percent) +
   labs(x = "Date", y = "Occupation Rate (%)", title = "Occupation Rate by Date") 
+
+```
+
+
+```{r}
+# Cargar librerías necesarias
+library(dplyr)
+library(ggplot2)
+library(zoo)
+
+# Calcular los promedios móviles de 7, 14 y 30 días
+occupation_rate <- occupation_rate %>%
+  mutate(ma_90 = rollmean(ocupacion_porcentaje, k = 90, fill = NA, align = "right"),
+         ma_365 = rollmean(ocupacion_porcentaje, k = 365, fill = NA, align = "right"),
+         ma_180 = rollmean(ocupacion_porcentaje, k = 180, fill = NA, align = "right"))
+
+# Visualizar las series originales y los promedios móviles
+ggplot(occupation_rate, aes(x = fecha)) +
+  geom_line(aes(y = ocupacion_porcentaje, color = "Ocupación diaria"), size = 0.5) +
+  geom_line(aes(y = ma_90, color = "MA 90 días"), size = 1) +
+
+  geom_line(aes(y = ma_180, color = "MA 180 días"), size = 1) +
+    geom_line(aes(y = ma_365, color = "MA 365 días"), size = 1) +
+  labs(title = "Porcentaje de Ocupación con Promedios Móviles (90, 180 y 35 días)",
+       x = "Fecha", y = "Ocupación (%)", color = "Leyenda") +
+  scale_y_continuous(labels = scales::percent) +
+  theme_minimal()
+
+
+
+```
+
+```{r}
+# Cargar las librerías necesarias
+
+
+# Asegurarse de que la columna fecha está en formato Date
+occupation_rate$fecha <- as.Date(occupation_rate$fecha)
+
+# Crear la serie temporal: asumiendo que los datos son mensuales (cambia si es otra frecuencia)
+ts_occupation <- ts(occupation_rate$ocupacion_porcentaje, 
+                    start = c(year(min(occupation_rate$fecha)), month(min(occupation_rate$fecha))),
+                    frequency = 365)  # Cambia '12' a la frecuencia correcta si los datos son diarios
+
+# Descomponer la serie temporal
+occupation_decomp <- stl(ts_occupation, s.window = "periodic")
+
+# Convertir a data frame para usar con ggplot
+df_occupation_decomp <- data.frame(
+  fecha = occupation_rate$fecha,
+  ocupacion_porcentaje = occupation_rate$ocupacion_porcentaje,
+  trend = occupation_decomp$time.series[, "trend"],
+  seasonal = occupation_decomp$time.series[, "seasonal"],
+  remainder = occupation_decomp$time.series[, "remainder"]
+)
+
+# Graficar la serie temporal original y la tendencia
+ggplot(df_occupation_decomp, aes(x = fecha)) +
+  geom_line(aes(y = ocupacion_porcentaje), color = "blue", size = 1) +
+  geom_line(aes(y = trend), color = "red", size = 1, linetype = "dashed") +
+   geom_line(aes(y = seasonal), color = "green", size = 1) +
+  labs(title = "Descomposición de la Serie Temporal de Ocupación", 
+       y = "Ocupación (%)", x = "Fecha") +
+  theme_minimal()
+
+
+# Ajustar una regresión lineal para obtener la tendencia exacta
+lm_model <- lm(ocupacion_porcentaje ~ as.numeric(fecha), data = occupation_rate)
+
+# Ver los coeficientes de la regresión
+summary(lm_model)
+
+# Obtener la pendiente de la línea de tendencia
+tendencia <- coef(lm_model)[2]
+tendencia
+
+# ... (tu código existente)
+
+# Calcular la ocupación promedio por mes
+ocupacion_mensual <- df_occupation_decomp %>%
+  mutate(mes = month(fecha)) %>% 
+  mutate(anio = year(fecha))
+
+ggplot(ocupacion_mensual, aes(mes,ocupacion_porcentaje,group = mes))+
+  geom_boxplot()
+
+ggplot(ocupacion_mensual, aes(mes,ocupacion_porcentaje,group = mes))+
+  geom_boxplot()+
+    facet_wrap(~ anio)
+
+
 
 ```
 
@@ -172,7 +273,7 @@ ocupacion_por_dia <- reservas_diarias %>%
 
 ## How many days are full completed
 
-
+Solo la double shared bathroom se ocupa completa un numero considerado de dias. 1 de cada 5 (20%), el resto esta por debajo del 10%
 ```{r , echo = FALSE, message = FALSE}
 days_completed <- ocupacion_por_dia %>% 
   mutate(completed = ifelse(ocupacion_porcentaje == 1,1,0)) %>% 
@@ -190,7 +291,11 @@ kable(days_completed %>%
 
 ```
 
-```{r , fig.width=12, fig.height=9, echo = FALSE,  message = FALSE}
+Si agrupamos todos los huespedes de compartidas, vemos que solo en 3 dias de todo el historico de casi 3 años ha habido mas de 22 huespedes en compartidas, es decir, se podria haber satisfecho todo la demanda de compartidas sin la de 4 camas, solo 12 dias con mas de 20 huespedes y el 81% de los dias se podrian haber cubierto con las dos de ocho.
+
+
+
+```{r , fig.width=12, fig.height=4, echo = FALSE,  message = FALSE}
 
 ## Porcentaje ocupacion todas las compartidas juntas
 
@@ -198,7 +303,10 @@ shared_occupation <- ocupacion_por_dia %>%
   filter(grepl("beds", id_name_type)) %>% 
   group_by(fecha) %>% 
   summarise(occupation = sum(num_reservas)) %>% 
-  mutate(prop = occupation/(8+8+6+4))
+  mutate(prop = occupation/(8+8+6+4)) %>% 
+  mutate(more_22 = ifelse(occupation > 22,1,0)) %>% 
+   mutate(more_20 = ifelse(occupation > 20,1,0) ) %>% 
+  mutate(more_16 = ifelse(occupation > 16,1,0) ) 
   
 
 ggplot(shared_occupation, aes(fecha,occupation)) +
@@ -224,7 +332,7 @@ ggplot(shared_occupation, aes(fecha,occupation)) +
 
 
 RevPar by date
-```{r}
+```{r , fig.width=12, fig.height=4, echo = FALSE,  message = FALSE}
 RevPar <- room_reservations_confirmed %>% 
   uncount(diff_days , .id = "dia") %>%
   mutate(fecha = start_date + days(dia - 1)) %>% 
@@ -242,11 +350,9 @@ RevPar <- room_reservations_confirmed %>%
     geom_line() +
   geom_hline(yintercept = mean(RevPar$RevPar_day) ,color = "blue")+
   geom_point() +
-  theme_minimal() 
+  theme_minimal() +
+    labs(y= "RevPar",x="Date",title = "RevPar by Date")
   
-    ggplot(RevPar, aes(RevPar_day)) +
- 
-  geom_density() 
  
   
 
@@ -256,7 +362,7 @@ RevPar <- room_reservations_confirmed %>%
 
 
 RevPar by date and room_type
-```{r}
+```{r, fig.width=12, fig.height=9, echo = FALSE,  message = FALSE}
 
 RevPar_room_type <- room_reservations_confirmed %>% 
   uncount(diff_days , .id = "dia") %>%
@@ -281,7 +387,7 @@ RevPar_room_type <- room_reservations_confirmed %>%
  ggplot(RevPar_room_type  
                     , aes(x = fecha, y = RevPar_day,color = id_name_type)) +
         geom_line() +
-    facet_wrap(~ id_name_type, ncol = 2)   + 
+    facet_wrap(~ id_name_type, ncol = 2,scales = "free")   + 
    labs(
          x = "Fecha",
          y = "RevPar",
@@ -289,34 +395,23 @@ RevPar_room_type <- room_reservations_confirmed %>%
          title = "Evolución del RevPar por Tipo de Habitación"
       )+
   theme_minimal() +
+  geom_smooth(span = 0.2, se = FALSE) +  # Suavizado con loess, sin bandas de confianza
+  geom_line(alpha = 0.3) +  # Líneas originales con transparencia
   theme(
     legend.position = "bottom",
     legend.text = element_text(size = 10),
-     panel.spacing = unit(0.2, "lines"),
+    panel.spacing = unit(0.2, "lines"),
     strip.text = element_text(size = 10),
-    #panel.grid.major.y = element_line(color = "gray80"),
-  #  panel.grid.minor.y = element_blank()
-  ) 
-
- ggplot(RevPar_room_type  %>% 
-          filter(id_name_type == 'shared 4 beds' | id_name_type == 'double privated bathroom')
-                    , aes(x = fecha, y = RevPar_day,color = id_name_type)) +
-        geom_line() +
-    
-   labs(
-         x = "Fecha",
-         y = "RevPar",
-         color = "Tipo de habitacion",
-         title = "Evolución del RevPar por Tipo de Habitación"
-      )
-
+    panel.grid.major.y = element_line(color = "gray80"),
+    panel.grid.minor.y = element_blank()
+  )
 
 
 
 
 ```
 
-```{r echo = FALSE}
+```{r echo = FALSE,  message = FALSE}
 
 occupation_rate_by_room <- room_reservations_confirmed %>% 
   mutate(total_days = as.integer(max(start_date) - min(start_date) )) %>% 
@@ -339,33 +434,39 @@ occupation_rate_by_room <- room_reservations_confirmed %>%
 
 Stay duration by room type
 
-```{r}
-duration <- reservas_diarias %>% 
-  group_by(id_zak_room,id_name_type,start_date) %>% 
+```{r, fig.width=12, fig.height=9, echo = FALSE,  message = FALSE}
+duration_shared_vs_private <- reservas_diarias %>% 
+  mutate(privated_or_shared = ifelse( grepl("beds", id_name_type), "shared","privated" )) %>% 
+  group_by(id_zak_room,privated_or_shared,start_date) %>% 
   summarise(dias = max(dia), .groups = "drop") %>% 
   mutate(dias = ifelse(dias > 5, 5,dias)) %>% 
-  group_by(dias,id_name_type) %>% 
+  group_by(dias,privated_or_shared) %>% 
   summarise(estancias = n(), .groups = "drop") %>% 
-  group_by(id_name_type) %>% 
+  group_by(privated_or_shared) %>% 
   mutate(total_estancias = sum(estancias)) %>% 
   mutate(prop = estancias/total_estancias)%>%
   arrange(dias) %>%
   mutate(prop_acumulada = cumsum(prop))
 
 
-ggplot(duration%>% filter(dias < 5), aes(dias,prop_acumulada ,fill = id_name_type)) +
-   geom_area(alpha = 0.2,position = "dodge") +
-  scale_fill_brewer(palette = "Set2", name = "Tipo de habitación") +
-  labs(x = "Duración de la estancia (días)",
-       y = "Proporción acumulada de estancias",
-       title = "Evolución de la proporción de estancias por tipo de habitación") +
-  theme_minimal() +
-  theme(legend.position = "bottom")
+duration_general <-reservas_diarias %>% 
+  group_by(id_zak_room,start_date) %>% 
+  summarise(dias = max(dia), .groups = "drop") %>% 
+  mutate(dias = ifelse(dias > 5, 5,dias)) %>% 
+  group_by(dias) %>% 
+  summarise(estancias = n(), .groups = "drop") %>% 
+  mutate(total_estancias = sum(estancias)) %>% 
+  mutate(prop = estancias/total_estancias)%>%
+  arrange(dias) %>%
+  mutate(prop_acumulada = cumsum(prop))
 
-ggplot(duration, aes(dias,prop ,fill = id_name_type)) +
-  geom_col(position = "dodge")  +
-  scale_color_discrete(name = "Tipo de habitación") +
-  scale_y_continuous(limits = c(0, 1), labels = scales::percent)
+
+kable(duration_general %>% select(dias, prop,prop_acumulada) )
+
+##ggplot(duration_shared_vs_private, aes(dias,prop ,fill = privated_or_shared )) +
+##  geom_col(position = "dodge")  +
+##  scale_color_discrete(name = "Tipo de habitación") +
+##  scale_y_continuous(limits = c(0, 1), labels = scales::percent)
 
 
 
@@ -374,7 +475,7 @@ ggplot(duration, aes(dias,prop ,fill = id_name_type)) +
  
  
  Avg price vs occupation rate by room
-```{r}
+```{r, fig.width=12, fig.height=6, echo = FALSE,  message = FALSE}
 
 # Calcula la pendiente ajustada
 max_avg_price <- max(occupation_rate_by_room$media)
@@ -407,7 +508,7 @@ scale_x_continuous(limits = c(0, 150000))
 
 Revenue proportion by room_type
 
-```{r}
+```{r, echo = FALSE}
 
 revenue_by_room_type <- room_reservations_confirmed %>% 
   group_by(id_name_type) %>% 
@@ -416,16 +517,8 @@ revenue_by_room_type <- room_reservations_confirmed %>%
   mutate(prop = room_revenue/total_revenue)
 
 
-ggplot(revenue_by_room_type, aes(fct_reorder(id_name_type, -prop),prop))+
-  geom_col()+ 
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))+ 
-  scale_y_continuous(limits = c(0, 1), labels = scales::percent) +  
-   labs(
-         x = "Date",
-         y = "Proportion",
-         title = "Revenue proportion by room_type"
-      )
 
+kable(revenue_by_room_type)
 
 
 ```

@@ -235,11 +235,11 @@ def get_customer_data_df(dataframes_reservation_list):
 
 def get_and_save_all_dataframes():
 
-  created_start = datetime.date(2022, 1, 1)
+  created_start = datetime.date(2021, 1, 1)
   #created_start = datetime.date(2022, 12, 30)
-  created_end = datetime.date(2022, 12,31)
-  arrival_start = datetime.date(2022, 1, 1)
-  arrival_end = datetime.date(2023, 12, 31)
+  created_end = datetime.date(2021, 12,31)
+  arrival_start = datetime.date(2021, 1, 1)
+  arrival_end = datetime.date(2022, 12, 31)
 
   dataframes_reservation_list = get_reservations_df_list(created_start, created_end, arrival_start, arrival_end)
     
@@ -262,8 +262,8 @@ def get_and_save_all_dataframes():
   
 
   
-  os.makedirs("my_data_2022", exist_ok=True) 
-  output_directory = "my_data_2022"
+  os.makedirs("my_data_2021", exist_ok=True) 
+  output_directory = "my_data_2021"
   
   reservations_df.to_csv(os.path.join(output_directory,"reservations.csv"),index=False, sep=',')
   room_reservation_df.to_csv(os.path.join(output_directory,"room_reservations.csv"),index=False, sep=',')
