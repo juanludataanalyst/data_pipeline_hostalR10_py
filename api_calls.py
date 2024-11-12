@@ -4,6 +4,7 @@ import pandas as pd
 from dotenv import load_dotenv
 import os
 import datetime
+import pandas as pd
 
 # Loads environment variables from the .env file
 load_dotenv('.env')

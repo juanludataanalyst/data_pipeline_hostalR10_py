@@ -49,3 +49,4 @@ database.yml
 
 # Descarta archivos de caché
 .cache
+api_key.txt
